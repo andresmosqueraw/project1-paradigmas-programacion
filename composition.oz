@@ -52,6 +52,9 @@ end
 fun {Compose3Args O1 O2 O3}
     {ComposeList [O1 O2 O3]}
 end 
+fun {Compose O1 O2}
+    {Compose2Args O1 O2}
+ end 
 
 %% Meta function to compose any number of objects (Implementation 2)
 %% Alternative implementation using fold pattern
