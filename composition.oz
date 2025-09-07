@@ -14,9 +14,8 @@ declare
 
 %% Meta function to create a new composable object
 fun {CreateObject Methods}
-   %% Create a record of named functions representing the object
-   {Record.make object {Arity Methods}}
-end
+    Methods     % devuelve exactamente el record de métodos
+ end 
 
 %% Meta function to add a method to an existing object
 fun {AddMethod Object MethodName Method}
@@ -38,21 +37,21 @@ fun {ComposeObjects Object1 Object2}
 end
 
 %% Meta function to compose any number of objects (Implementation 1)
-fun {Compose Objects}
-   case Objects of nil then
-      %% Empty composition returns empty object
-      {CreateObject empty()}
-   [] [Object] then
-      %% Single object composition returns the object itself
-      Object
-   [] [Object1 Object2] then
-      %% Two objects composition
-      {ComposeObjects Object1 Object2}
-   [] Object|Rest then
-      %% Multiple objects composition - recursively compose
-      {ComposeObjects Object {Compose Rest}}
-   end
+fun {ComposeList Objects}
+    case Objects of nil then {CreateObject empty()}
+    [] [Object] then Object
+    [] [Object1 Object2] then {ComposeObjects Object1 Object2}
+    [] Object|Rest then {ComposeObjects Object {ComposeList Rest}}
+    end
+end 
+
+fun {Compose2Args O1 O2}
+    {ComposeList [O1 O2]}
 end
+ 
+fun {Compose3Args O1 O2 O3}
+    {ComposeList [O1 O2 O3]}
+end 
 
 %% Meta function to compose any number of objects (Implementation 2)
 %% Alternative implementation using fold pattern
@@ -78,22 +77,13 @@ fun {GetMethodNames Object}
 end
 
 %% Meta function to get all attributes from an object
-fun {GetAttributes Object}
-   {System.showInfo "DEBUG: GetAttributes function called"}
-   {System.showInfo "DEBUG: Checking if object has attributes method"}
-   if {HasMethod Object attributes} then
-      {System.showInfo "DEBUG: Object has attributes method, calling it"}
-      local Result in
-         {System.showInfo "DEBUG: About to call Object.attributes"}
-         Result = Object.attributes
-         {System.showInfo "DEBUG: Object.attributes call completed"}
-         Result
-      end
-   else
-      {System.showInfo "DEBUG: Object has no attributes method, returning empty"}
-      attributes()
-   end
-end
+fun {GetAttributes O}
+    if {HasFeature O attributes} then
+       {O.attributes}   % <— invocar la función
+    else
+       attributes()
+    end
+ end 
 
 %% Meta function to check if an object has a specific method
 fun {HasMethod Object MethodName}
@@ -328,62 +318,48 @@ end
 
 %% Employer Object
 fun {CreateEmployer InitialName InitialAddress}
-   local
-      %% Attributes defined as cells for modification
-      NameCell = {NewCell InitialName}
-      AddressCell = {NewCell InitialAddress}
-      
-      %% Attributes function that returns a record with cell values
-      fun {Attributes}
-         attributes(name:@NameCell address:@AddressCell)
-      end
-      
-      %% Methods that operate on the cell attributes
-      fun {Name} @NameCell end
-      fun {Address} @AddressCell end
-      proc {Display}
-         {System.showInfo "Employer"}
-         {System.showInfo "Name: " # @NameCell}
-         {System.showInfo "Address: " # @AddressCell}
-      end
-   in
-      {CreateObject employer(
-         attributes:Attributes
-         name:Name
-         address:Address
-         display:Display
-      )}
-   end
-end
+    local
+       N = {NewCell InitialName}
+       A = {NewCell InitialAddress}
+       fun {Attributes} attributes(name:@N address:@A) end
+       fun {Name} @N end
+       fun {Address} @A end
+       proc {Display}
+          {System.showInfo "Employer"}
+          {System.showInfo "Name: " # @N}
+          {System.showInfo "Address: " # @A}
+       end
+    in
+        {CreateObject employer(
+            attributes:Attributes
+            'Name':Name
+            'Address':Address
+            'Display':Display
+        )}         
+    end
+ end 
 
 %% Person Object
-fun {CreatePersonWithEmployer PersonName EmployerObject}
-   local
-      %% Attributes defined as cells for modification
-      NameCell = {NewCell PersonName}
-      EmployerCell = {NewCell EmployerObject}
-      
-      %% Attributes function that returns a record with cell values
-      fun {Attributes}
-         attributes(name:@NameCell employer:@EmployerCell)
-      end
-      
-      %% Methods that operate on the cell attributes
-      fun {PersonName} @NameCell end
-      fun {PersonEmployer} {@EmployerCell}.name end
-      proc {Display}
-         {System.showInfo "Person"}
-         {System.showInfo "Name: " # @NameCell}
-      end
-   in
-      {CreateObject personWithEmployer(
-         attributes:Attributes
-         personName:PersonName
-         personEmployer:PersonEmployer
-         display:Display
-      )}
-   end
-end
+fun {CreatePersonWithEmployer PName Emp}
+    local
+       N = {NewCell PName}
+       E = {NewCell Emp}
+       fun {Attributes} attributes(name:@N employer:@E) end
+       fun {PersonName} @N end
+       fun {PersonEmployer} {(@E).'Name'} end   % invoca el método del employer (mayúscula)
+       proc {Display}
+          {System.showInfo "Person"}
+          {System.showInfo "Name: " # @N}
+       end
+    in
+        {CreateObject person(
+            attributes:Attributes
+            'PersonName':PersonName
+            'PersonEmployer':PersonEmployer
+            'Display':Display
+        )}         
+    end
+ end 
 
 %% ========================================
 %% COMPOSITION EXAMPLES
@@ -444,10 +420,10 @@ in
    {System.showInfo "DEBUG: About to get Counter attributes"}
    {System.showInfo "Counter attributes: "}
    {System.showInfo "DEBUG: Calling GetAttributes now..."}
-   {System.showInfo "DEBUG: About to call Counter1.attributes directly..."}
+   {System.showInfo "DEBUG: About to call {Counter1.attributes} directly..."}
    local Attrs in
-      Attrs = Counter1.attributes
-      {System.showInfo "DEBUG: Direct call successful, showing result..."}
+      Attrs = {Counter1.attributes}
+      {System.showInfo "Person's employer name: " # {PersonWithEmployer.'PersonEmployer'}}
       {Show Attrs}
    end
    {System.showInfo "DEBUG: About to call Counter display"}
@@ -533,7 +509,7 @@ in
    {System.showInfo "PersonWithEmployer attributes: "}
    {Show {GetAttributes PersonWithEmployer}}
    {PersonWithEmployer.display}
-   {System.showInfo "Person's employer name: " # {PersonWithEmployer.personEmployer}}
+   {System.showInfo "Person's employer name: " # {PersonWithEmployer.'PersonEmployer'}}
    
    {System.showInfo "=== Testing Composed Objects ==="}
    
@@ -576,7 +552,7 @@ in
    local O1 O2 Comp in
       O1 = {NewObject1 42}
       O2 = {NewObject2 10 20}
-      Comp = {Compose [O1 O2]}
+      Comp  = {Compose2Args O1 O2}
       
       {System.showInfo "Testing composition equality: "}
       {Show {O1.getAttribute1} == {Comp.getAttribute1}}
@@ -599,7 +575,7 @@ in
       O1 = {NewObject1 100}
       O2 = {NewObject2 200 300}
       
-      Comp1 = {Compose [O1 O2]}
+      Comp1 = {Compose2Args O1 O2}
       Comp2 = {Compose2 [O1 O2]}
       
       {System.showInfo "Implementation 1 (Compose) methods: "}
@@ -620,8 +596,8 @@ in
    {System.showInfo "=== Testing Idempotency ==="}
    local O1 Comp1 Comp2 in
       O1 = {NewObject1 100}
-      Comp1 = {Compose [O1]}
-      Comp2 = {Compose [O1 O1]}
+      Comp1 = {ComposeList [O1]}
+      Comp2 = {ComposeList [O1 O1]}
       
       {System.showInfo "Original object methods: "}
       {Show {GetMethodNames O1}}
