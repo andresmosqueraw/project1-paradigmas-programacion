@@ -501,14 +501,14 @@ in
    {Show {GetMethodNames Employer1}}
    {System.showInfo "Employer attributes: "}
    {Show {GetAttributes Employer1}}
-   {Employer1.display}
+   {Employer1.'Display'}
    
    %% Test Person with Employer
    {System.showInfo "PersonWithEmployer methods: "}
    {Show {GetMethodNames PersonWithEmployer}}
    {System.showInfo "PersonWithEmployer attributes: "}
    {Show {GetAttributes PersonWithEmployer}}
-   {PersonWithEmployer.display}
+   {PersonWithEmployer.'Display'}
    {System.showInfo "Person's employer name: " # {PersonWithEmployer.'PersonEmployer'}}
    
    {System.showInfo "=== Testing Composed Objects ==="}
@@ -531,11 +531,11 @@ in
    
    %% Test adding a method dynamically
    EnhancedCounter = {AddMethod Counter1 greet
-      fun {$} {System.showInfo "Hello from counter!"} end
-   }
+        proc {$} {System.showInfo "Hello from counter!"} end
+    }
    {System.showInfo "Enhanced counter methods: "}
    {Show {GetMethodNames EnhancedCounter}}
-   {EnhancedCounter.greet}
+   {EnhancedCounter.greet}     % ahora OK (proc de aridad 0)
    
    %% Test method invocation through meta function
    {System.showInfo "Invoking method through meta function: "}
