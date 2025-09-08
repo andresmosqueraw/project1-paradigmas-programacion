@@ -45,17 +45,6 @@ fun {ComposeList Objects}
     end
 end 
 
-fun {Compose2Args O1 O2}
-    {ComposeList [O1 O2]}
-end
- 
-fun {Compose3Args O1 O2 O3}
-    {ComposeList [O1 O2 O3]}
-end 
-fun {Compose O1 O2}
-    {Compose2Args O1 O2}
- end 
-
 %% Meta function to compose any number of objects (Implementation 2)
 %% Alternative implementation using fold pattern
 fun {Compose2 Objects}
@@ -394,6 +383,9 @@ fun {CreateAccountHolder Name Age InitialBalance}
    end
 end
 
+
+
+
 %% ========================================
 %% TESTING AND DEMONSTRATION
 %% ========================================
@@ -555,7 +547,7 @@ in
    local O1 O2 Comp in
       O1 = {NewObject1 42}
       O2 = {NewObject2 10 20}
-      Comp  = {Compose2Args O1 O2}
+      Comp  = {ComposeList [O1 O2]}
       
       {System.showInfo "Testing composition equality: "}
       {Show {O1.getAttribute1} == {Comp.getAttribute1}}
@@ -578,7 +570,7 @@ in
       O1 = {NewObject1 100}
       O2 = {NewObject2 200 300}
       
-      Comp1 = {Compose2Args O1 O2}
+      Comp1 = {ComposeList [O1 O2]}
       Comp2 = {Compose2 [O1 O2]}
       
       {System.showInfo "Implementation 1 (Compose) methods: "}
