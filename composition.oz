@@ -435,7 +435,7 @@ in
    {System.showInfo "DEBUG: Counter1.display (second time) completed successfully"}
    {System.showInfo "Counter attributes after increment: "}
    {System.showInfo "DEBUG: About to get Counter attributes after increment"}
-   {Show {GetAttributes Counter1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Counter1} 1000 1}}
    {System.showInfo "DEBUG: Counter attributes after increment obtained successfully"}
    {System.showInfo "DEBUG: Counter test completed"}
    
@@ -447,7 +447,7 @@ in
    {System.showInfo "DEBUG: Account1 method names obtained successfully"}
    {System.showInfo "Account attributes: "}
    {System.showInfo "DEBUG: Getting Account1 attributes"}
-   {Show {GetAttributes Account1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Account1} 1000 1} }
    {System.showInfo "DEBUG: Account1 attributes obtained successfully"}
    {System.showInfo "DEBUG: About to call Account1.display"}
    {Account1.display}
@@ -460,7 +460,7 @@ in
    {System.showInfo "DEBUG: Account1.display (second time) completed successfully"}
    {System.showInfo "Account attributes after deposit: "}
    {System.showInfo "DEBUG: Getting Account1 attributes after deposit"}
-   {Show {GetAttributes Account1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Account1} 1000 1}}
    {System.showInfo "DEBUG: Account1 attributes after deposit obtained successfully"}
    {System.showInfo "DEBUG: Bank Account test completed"}
    
@@ -472,7 +472,7 @@ in
    {System.showInfo "DEBUG: Person1 method names obtained successfully"}
    {System.showInfo "Person attributes: "}
    {System.showInfo "DEBUG: Getting Person1 attributes"}
-   {Show {GetAttributes Person1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Person1} 1000 1}}
    {System.showInfo "DEBUG: Person1 attributes obtained successfully"}
    {System.showInfo "DEBUG: About to call Person1.display"}
    {Person1.display}
@@ -485,7 +485,7 @@ in
    {System.showInfo "DEBUG: Person1.display (second time) completed successfully"}
    {System.showInfo "Person attributes after birthday: "}
    {System.showInfo "DEBUG: Getting Person1 attributes after birthday"}
-   {Show {GetAttributes Person1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Person1} 1000 1}}
    {System.showInfo "DEBUG: Person1 attributes after birthday obtained successfully"}
    {System.showInfo "DEBUG: Person test completed"}
    
@@ -495,14 +495,14 @@ in
    {System.showInfo "Employer methods: "}
    {Show {GetMethodNames Employer1}}
    {System.showInfo "Employer attributes: "}
-   {Show {GetAttributes Employer1}}
+   {System.showInfo {Value.toVirtualString {GetAttributes Employer1} 1000 1}}
    {Employer1.'Display'}
    
    %% Test Person with Employer
    {System.showInfo "PersonWithEmployer methods: "}
    {Show {GetMethodNames PersonWithEmployer}}
    {System.showInfo "PersonWithEmployer attributes: "}
-   {Show {GetAttributes PersonWithEmployer}}
+   {System.showInfo {Value.toVirtualString {GetAttributes PersonWithEmployer} 1000 1}}
    {PersonWithEmployer.'Display'}
    {System.showInfo "Person's employer name: " # {PersonWithEmployer.'PersonEmployer'}}
    
