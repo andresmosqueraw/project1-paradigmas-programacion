@@ -57,6 +57,175 @@ fun {Compose2 Objects}
    end
 end
 
+%% ========================================
+%% TASK 2: EXPLICIT COMPOSITION
+%% ========================================
+
+%% Task 2: ExplicitComposition - Builds a brand new object incorporating all attributes and methods
+fun {ExplicitComposition Objects}
+   case Objects of nil then
+      {CreateObject empty()}
+   [] [Object] then
+      Object
+   [] Object|Rest then
+      {FoldL Rest ComposeObjects Object}
+   end
+end
+
+%% ========================================
+%% TASK 3: IMPLICIT COMPOSITION
+%% ========================================
+
+%% Task 3: ImplicitComposition - Manages objects as part of a new object
+fun {ImplicitComposition Objects}
+   local
+      %% Store all objects in a list for management
+      ManagedObjects = {NewCell Objects}
+      
+      %% Create a dispatcher that finds and calls methods from managed objects
+      fun {CreateDispatcher MethodName}
+         fun {$}
+            {FindAndCallMethod Objects MethodName nil}
+         end
+      end
+      
+      %% Helper function to find and call a method from managed objects
+      fun {FindAndCallMethod Objects MethodName Args}
+         case Objects of nil then
+            error(noMethod:MethodName)
+         [] Object|Rest then
+            if {HasMethod Object MethodName} then
+               %% Call the method directly without arguments
+               {Object.MethodName}
+            else
+               {FindAndCallMethod Rest MethodName Args}
+            end
+         end
+      end
+      
+      %% Get all unique method names from all objects
+      fun {GetAllMethodNames Objects}
+         {RemoveDuplicates {Flatten {Map Objects GetMethodNames}}}
+      end
+      
+      %% Remove duplicates from a list
+      fun {RemoveDuplicates List}
+         case List of nil then nil
+         [] H|T then
+            if {Member H T} then {RemoveDuplicates T}
+            else H|{RemoveDuplicates T}
+            end
+         end
+      end
+      
+      %% Create the composite object with dispatchers for each method
+      fun {CreateCompositeObject MethodNames}
+         case MethodNames of nil then
+            {CreateObject empty()}
+         [] MethodName|Rest then
+            {AdjoinAt {CreateCompositeObject Rest} MethodName {CreateDispatcher MethodName}}
+         end
+      end
+   in
+      {CreateCompositeObject {GetAllMethodNames Objects}}
+   end
+end
+
+%% ========================================
+%% TASK 4: EXPLICIT COMPOSITION WITH METHOD CLASHES
+%% ========================================
+
+%% Task 4: ExplicitCompositionPoly - Handles method clashes by keeping all methods as ordered lists
+fun {ExplicitCompositionPoly Objects}
+   local
+      {System.showInfo "DEBUG: ExplicitCompositionPoly called with objects"}
+      {Show {Length Objects}}
+      
+      %% Collect all methods from all objects, handling clashes
+      fun {CollectMethods Objects}
+         case Objects of nil then
+            {System.showInfo "DEBUG: No more objects to process"}
+            {CreateObject empty()}
+         [] Object|Rest then
+            {System.showInfo "DEBUG: Processing object, merging with rest"}
+            {MergeMethods Object {CollectMethods Rest}}
+         end
+      end
+      
+      %% Merge methods from two objects, handling clashes
+      fun {MergeMethods Object1 Object2}
+         local
+            {System.showInfo "DEBUG: MergeMethods called"}
+            %% Get all method names from both objects
+            Methods1 = {GetMethodNames Object1}
+            Methods2 = {GetMethodNames Object2}
+            AllMethods = {Append Methods1 Methods2}
+            UniqueMethods = {RemoveDuplicates AllMethods}
+            
+            {System.showInfo "DEBUG: Methods1: "}
+            {Show Methods1}
+            {System.showInfo "DEBUG: Methods2: "}
+            {Show Methods2}
+            {System.showInfo "DEBUG: UniqueMethods: "}
+            {Show UniqueMethods}
+            
+            %% Create merged methods record
+            fun {CreateMergedMethods MethodNames}
+               case MethodNames of nil then
+                  {System.showInfo "DEBUG: No more methods to process"}
+                  {CreateObject empty()}
+               [] MethodName|Rest then
+                  local
+                     {System.showInfo "DEBUG: Processing method: " # MethodName}
+                     %% Check if method exists in both objects (clash)
+                     HasIn1 = {HasMethod Object1 MethodName}
+                     HasIn2 = {HasMethod Object2 MethodName}
+                  in
+                     {System.showInfo "DEBUG: HasIn1: "}
+                     {Show HasIn1}
+                     {System.showInfo "DEBUG: HasIn2: "}
+                     {Show HasIn2}
+                     if HasIn1 andthen HasIn2 then
+                        {System.showInfo "DEBUG: Method clash detected for: " # MethodName}
+                        %% Method clash - create a function that calls the first method
+                        {AdjoinAt {CreateMergedMethods Rest} MethodName 
+                         fun {$} {Object1.MethodName} end}
+                     elseif HasIn1 then
+                        {System.showInfo "DEBUG: Method only in Object1: " # MethodName}
+                        %% Method only in Object1
+                        {AdjoinAt {CreateMergedMethods Rest} MethodName Object1.MethodName}
+                     elseif HasIn2 then
+                        {System.showInfo "DEBUG: Method only in Object2: " # MethodName}
+                        %% Method only in Object2
+                        {AdjoinAt {CreateMergedMethods Rest} MethodName Object2.MethodName}
+                     else
+                        {System.showInfo "DEBUG: Method not found in either object: " # MethodName}
+                        %% Should not happen
+                        {CreateMergedMethods Rest}
+                     end
+                  end
+               end
+            end
+         in
+            {CreateMergedMethods UniqueMethods}
+         end
+      end
+      
+      %% Remove duplicates from a list
+      fun {RemoveDuplicates List}
+         case List of nil then nil
+         [] H|T then
+            if {Member H T} then {RemoveDuplicates T}
+            else H|{RemoveDuplicates T}
+            end
+         end
+      end
+   in
+      {System.showInfo "DEBUG: Starting CollectMethods"}
+      {CollectMethods Objects}
+   end
+end
+
 %% Meta function to get all method names from an object
 fun {GetMethodNames Object}
    {System.showInfo "DEBUG: GetMethodNames function called"}
@@ -585,6 +754,46 @@ in
       {System.showInfo "Implementation 2 - getAttribute1: " # {Comp2.getAttribute1}}
       {System.showInfo "Both should return same value (first object precedence): "}
       {Show {Comp1.getAttribute1} == {Comp2.getAttribute1}}
+   end
+   
+   {System.showInfo "=== Testing Task 2: ExplicitComposition ==="}
+   local O1 O2 ExplicitComp in
+      O1 = {NewObject1 500}
+      O2 = {NewObject2 600 700}
+      
+      ExplicitComp = {ExplicitComposition [O1 O2]}
+      
+      {System.showInfo "ExplicitComposition methods: "}
+      {Show {GetMethodNames ExplicitComp}}
+      {System.showInfo "ExplicitComposition - getAttribute1: " # {ExplicitComp.getAttribute1}}
+      {System.showInfo "ExplicitComposition - getAttribute2: " # {ExplicitComp.getAttribute2}}
+   end
+   
+   {System.showInfo "=== Testing Task 3: ImplicitComposition ==="}
+   local O1 O2 ImplicitComp in
+      O1 = {NewObject1 800}
+      O2 = {NewObject2 900 1000}
+      
+      ImplicitComp = {ImplicitComposition [O1 O2]}
+      
+      {System.showInfo "ImplicitComposition methods: "}
+      {Show {GetMethodNames ImplicitComp}}
+      {System.showInfo "ImplicitComposition - getAttribute1: " # {ImplicitComp.getAttribute1}}
+      {System.showInfo "ImplicitComposition - getAttribute2: " # {ImplicitComp.getAttribute2}}
+   end
+   
+   {System.showInfo "=== Testing Task 4: ExplicitCompositionPoly ==="}
+   local O1 O2 PolyComp in
+      O1 = {NewObject1 1100}
+      O2 = {NewObject2 1200 1300}
+      
+      PolyComp = {ExplicitCompositionPoly [O1 O2]}
+      
+      {System.showInfo "ExplicitCompositionPoly methods: "}
+      {Show {GetMethodNames PolyComp}}
+      {System.showInfo "ExplicitCompositionPoly - getAttribute1: "}
+      {Show {PolyComp.getAttribute1}}
+      {System.showInfo "ExplicitCompositionPoly - getAttribute2: " # {PolyComp.getAttribute2}}
    end
    
    %% Test idempotency - composing the same object twice
