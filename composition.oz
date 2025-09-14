@@ -76,73 +76,56 @@ end
 %% TASK 3: IMPLICIT COMPOSITION
 %% ========================================
 
-%% Task 3: ImplicitComposition - Manages objects as part of a new object
+%% Task 3: ImplicitComposition - compuesto “implícito” con pase de args
 fun {ImplicitComposition Objects}
    local
-      %% Store all objects in a list for management
+      %% mantenemos los objetos en una celda por si luego quieres actualizarlos
       ManagedObjects = {NewCell Objects}
-      
-      %% Create a dispatcher that finds and calls methods from managed objects
-      fun {CreateDispatcher MethodName}
-         fun {$ Args}
-            {FindAndCallMethod Objects MethodName Args}
+
+      %% ---- utilidades ----
+      fun {Call O Sel Args}
+         case Args of nil then {O.Sel}
+         [] [A] then {O.Sel A}
+         [] [A B] then {O.Sel A B}
+         else {O.Sel Args}
          end
       end
-      
-      %% Helper function to find and call a method from managed objects
-      fun {FindAndCallMethod Objects MethodName Args}
-         case Objects of nil then
-            error(noMethod:MethodName)
-         [] Object|Rest then
-            if {HasMethod Object MethodName} then
-               %% Call the method with the provided arguments
-               case Args of nil then
-                  {Object.MethodName}
-               [] [Arg] then
-                  {Object.MethodName Arg}
-               [] [Arg1 Arg2] then
-                  {Object.MethodName Arg1 Arg2}
-               else
-                  {Object.MethodName Args}
-               end
-            else
-               {FindAndCallMethod Rest MethodName Args}
+
+      fun {FindAndCall Os Sel Args}
+         case Os of nil then error(noMethod:Sel)
+         [] O|R then
+            if {HasMethod O Sel} then {Call O Sel Args}
+            else {FindAndCall R Sel Args}
             end
          end
       end
-      
-      %% Get all unique method names from all objects
-      fun {GetAllMethodNames Objects}
-         {RemoveDuplicates {Flatten {Map Objects GetMethodNames}}}
-      end
-      
-      %% Flatten a list of lists into a single list
-      fun {Flatten ListOfLists}
-         case ListOfLists of nil then nil
-         [] H|T then {Append H {Flatten T}}
+
+      fun {AllMethodNames Os}
+         %% junta todos los nombres de métodos de todos los objetos
+         fun {Flatten L}
+            case L of nil then nil [] H|T then {Append H {Flatten T}} end
          end
-      end
-      
-      %% Remove duplicates from a list
-      fun {RemoveDuplicates List}
-         case List of nil then nil
-         [] H|T then
-            if {Member H T} then {RemoveDuplicates T}
-            else H|{RemoveDuplicates T}
+         fun {RmDup L}
+            case L of nil then nil [] H|T then
+               if {Member H T} then {RmDup T} else H|{RmDup T} end
             end
          end
+      in
+         {RmDup {Flatten {Map Os GetMethodNames}}}
       end
-      
-      %% Create the composite object with dispatchers for each method
-      fun {CreateCompositeObject MethodNames}
-         case MethodNames of nil then
-            {CreateObject empty()}
-         [] MethodName|Rest then
-            {AdjoinAt {CreateCompositeObject Rest} MethodName {CreateDispatcher MethodName}}
+
+      fun {CreateDispatcher Sel}
+         %% ¡OJO! usamos @ManagedObjects para que siempre apunte a la lista viva
+         fun {$ Args} {FindAndCall @ManagedObjects Sel Args} end
+      end
+
+      fun {BuildComposite Names}
+         case Names of nil then {CreateObject empty()}
+         [] N|R then {AdjoinAt {BuildComposite R} N {CreateDispatcher N}}
          end
       end
    in
-      {CreateCompositeObject {GetAllMethodNames Objects}}
+      {BuildComposite {AllMethodNames @ManagedObjects}}
    end
 end
 
