@@ -156,9 +156,9 @@ fun {ExplicitCompositionPoly Objects}
       fun {MergeMethods Object1 Object2}
          local
             {System.showInfo "DEBUG: MergeMethods called"}
-            %% Get all method names from both objects
-            Methods1 = {GetMethodNames Object1}
-            Methods2 = {GetMethodNames Object2}
+            %% Get all method names from both objects, excluding 'attributes'
+            Methods1 = {FilterMethods {GetMethodNames Object1}}
+            Methods2 = {FilterMethods {GetMethodNames Object2}}
             AllMethods = {Append Methods1 Methods2}
             UniqueMethods = {RemoveDuplicates AllMethods}
             
@@ -173,7 +173,28 @@ fun {ExplicitCompositionPoly Objects}
             fun {CreateMergedMethods MethodNames}
                case MethodNames of nil then
                   {System.showInfo "DEBUG: No more methods to process"}
-                  {CreateObject empty()}
+                  %% Handle attributes method specially - merge attributes from both objects
+                  local
+                     HasAttrib1 = {HasMethod Object1 attributes}
+                     HasAttrib2 = {HasMethod Object2 attributes}
+                  in
+                     if HasAttrib1 andthen HasAttrib2 then
+                        {System.showInfo "DEBUG: Merging attributes from both objects"}
+                        {AdjoinAt {CreateObject empty()} attributes 
+                         fun {$} 
+                            {Adjoin {Object1.attributes} {Object2.attributes}}
+                         end}
+                     elseif HasAttrib1 then
+                        {System.showInfo "DEBUG: Using attributes from Object1"}
+                        {AdjoinAt {CreateObject empty()} attributes Object1.attributes}
+                     elseif HasAttrib2 then
+                        {System.showInfo "DEBUG: Using attributes from Object2"}
+                        {AdjoinAt {CreateObject empty()} attributes Object2.attributes}
+                     else
+                        {System.showInfo "DEBUG: No attributes method found"}
+                        {CreateObject empty()}
+                     end
+                  end
                [] MethodName|Rest then
                   local
                      {System.showInfo "DEBUG: Processing method: " # MethodName}
@@ -217,6 +238,16 @@ fun {ExplicitCompositionPoly Objects}
          [] H|T then
             if {Member H T} then {RemoveDuplicates T}
             else H|{RemoveDuplicates T}
+            end
+         end
+      end
+      
+      %% Filter out 'attributes' method from method lists
+      fun {FilterMethods Methods}
+         case Methods of nil then nil
+         [] H|T then
+            if H == attributes then {FilterMethods T}
+            else H|{FilterMethods T}
             end
          end
       end
