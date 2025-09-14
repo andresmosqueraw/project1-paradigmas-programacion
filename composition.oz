@@ -187,9 +187,9 @@ fun {ExplicitCompositionPoly Objects}
                      {Show HasIn2}
                      if HasIn1 andthen HasIn2 then
                         {System.showInfo "DEBUG: Method clash detected for: " # MethodName}
-                        %% Method clash - create a function that calls the first method
+                        %% Method clash - store all methods as an ordered list
                         {AdjoinAt {CreateMergedMethods Rest} MethodName 
-                         fun {$} {Object1.MethodName} end}
+                         [Object1.MethodName Object2.MethodName]}
                      elseif HasIn1 then
                         {System.showInfo "DEBUG: Method only in Object1: " # MethodName}
                         %% Method only in Object1
@@ -224,6 +224,130 @@ fun {ExplicitCompositionPoly Objects}
       {System.showInfo "DEBUG: Starting CollectMethods"}
       {CollectMethods Objects}
    end
+end
+
+%% ========================================
+%% TASK 5: DISPATCHING FUNCTION
+%% ========================================
+
+%% Task 5: Dispatch function to handle method calls for objects with methods as lists
+fun {Dispatch Object MethodName Args}
+   {System.showInfo "DEBUG: Dispatch called with method: " # MethodName}
+   if {HasMethod Object MethodName} then
+      local Method in
+         Method = Object.MethodName
+         {System.showInfo "DEBUG: Method found, checking if it's a list"}
+         case Method of nil then
+            {System.showInfo "DEBUG: Method is nil"}
+            error(noMethod:MethodName)
+         [] H|T then
+            {System.showInfo "DEBUG: Method is a list, calling first method"}
+            case Args of nil then
+               {H}
+            [] [Arg] then
+               {H Arg}
+            [] [Arg1 Arg2] then
+               {H Arg1 Arg2}
+            else
+               {H Args}
+            end
+         else
+            {System.showInfo "DEBUG: Method is not a list, calling directly"}
+            case Args of nil then
+               {Method}
+            [] [Arg] then
+               {Method Arg}
+            [] [Arg1 Arg2] then
+               {Method Arg1 Arg2}
+            else
+               {Method Args}
+            end
+         end
+      end
+   else
+      {System.showInfo "DEBUG: Method not found: " # MethodName}
+      error(noMethod:MethodName)
+   end
+end
+
+%% ========================================
+%% TASK 6: DISPATCH WITH NEXTFUNCTION
+%% ========================================
+
+%% Task 6: Enhanced Dispatch with NextFunction for method chaining
+fun {DispatchWithIndex Object MethodName Args Index}
+   {System.showInfo "DEBUG: DispatchWithIndex called with method: " # MethodName # " index: "}
+   {Show Index}
+   if {HasMethod Object MethodName} then
+      local Method in
+         Method = Object.MethodName
+         {System.showInfo "DEBUG: Method found, checking if it's a list"}
+         case Method of nil then
+            {System.showInfo "DEBUG: Method is nil"}
+            error(noMethod:MethodName)
+         [] H|T then
+            {System.showInfo "DEBUG: Method is a list, getting method at index"}
+            if Index =< {Length Method} then
+               local SelectedMethod in
+                  SelectedMethod = {Nth Method Index}
+                  {System.showInfo "DEBUG: Calling method at index "}
+                  {Show Index}
+                  case Args of nil then
+                     {SelectedMethod}
+                  [] [Arg] then
+                     {SelectedMethod Arg}
+                  [] [Arg1 Arg2] then
+                     {SelectedMethod Arg1 Arg2}
+                  else
+                     {SelectedMethod Args}
+                  end
+               end
+            else
+               {System.showInfo "DEBUG: Index out of bounds"}
+               unit
+            end
+         else
+            {System.showInfo "DEBUG: Method is not a list, calling directly"}
+            case Args of nil then
+               {Method}
+            [] [Arg] then
+               {Method Arg}
+            [] [Arg1 Arg2] then
+               {Method Arg1 Arg2}
+            else
+               {Method Args}
+            end
+         end
+      end
+   else
+      {System.showInfo "DEBUG: Method not found: " # MethodName}
+      error(noMethod:MethodName)
+   end
+end
+
+%% Helper function to get the nth element of a list
+fun {Nth List N}
+   case List of nil then
+      error(indexOutOfBounds)
+   [] H|T then
+      if N == 1 then H
+      else {Nth T N-1}
+      end
+   end
+end
+
+%% Helper function to get the length of a list
+fun {Length List}
+   case List of nil then 0
+   [] H|T then 1 + {Length T}
+   end
+end
+
+%% NextFunction implementation for method chaining
+fun {NextFunction Object MethodName Args CurrentIndex}
+   {System.showInfo "DEBUG: NextFunction called with method: " # MethodName # " current index: "}
+   {Show CurrentIndex}
+   {DispatchWithIndex Object MethodName Args CurrentIndex + 1}
 end
 
 %% Meta function to get all method names from an object
@@ -791,9 +915,42 @@ in
       
       {System.showInfo "ExplicitCompositionPoly methods: "}
       {Show {GetMethodNames PolyComp}}
-      {System.showInfo "ExplicitCompositionPoly - getAttribute1: "}
-      {Show {PolyComp.getAttribute1}}
-      {System.showInfo "ExplicitCompositionPoly - getAttribute2: " # {PolyComp.getAttribute2}}
+      {System.showInfo "ExplicitCompositionPoly - getAttribute1 using Dispatch: "}
+      {Show {Dispatch PolyComp getAttribute1 nil}}
+      {System.showInfo "ExplicitCompositionPoly - getAttribute2 using Dispatch: "}
+      {Show {Dispatch PolyComp getAttribute2 nil}}
+   end
+   
+   {System.showInfo "=== Testing Task 5: Dispatch Function ==="}
+   local O1 O2 PolyComp in
+      O1 = {NewObject1 1400}
+      O2 = {NewObject2 1500 1600}
+      
+      PolyComp = {ExplicitCompositionPoly [O1 O2]}
+      
+      {System.showInfo "Testing Dispatch function with PolyComp"}
+      {System.showInfo "Dispatch getAttribute1: "}
+      {Show {Dispatch PolyComp getAttribute1 nil}}
+      {System.showInfo "Dispatch getAttribute2: "}
+      {Show {Dispatch PolyComp getAttribute2 nil}}
+   end
+   
+   {System.showInfo "=== Testing Task 6: DispatchWithIndex and NextFunction ==="}
+   local O1 O2 PolyComp in
+      O1 = {NewObject1 1700}
+      O2 = {NewObject2 1800 1900}
+      
+      PolyComp = {ExplicitCompositionPoly [O1 O2]}
+      
+      {System.showInfo "Testing DispatchWithIndex function"}
+      {System.showInfo "DispatchWithIndex getAttribute1 index 1: "}
+      {Show {DispatchWithIndex PolyComp getAttribute1 nil 1}}
+      {System.showInfo "DispatchWithIndex getAttribute1 index 2: "}
+      {Show {DispatchWithIndex PolyComp getAttribute1 nil 2}}
+      
+      {System.showInfo "Testing NextFunction"}
+      {System.showInfo "NextFunction getAttribute1 from index 1: "}
+      {Show {NextFunction PolyComp getAttribute1 nil 1}}
    end
    
    %% Test idempotency - composing the same object twice
