@@ -84,8 +84,8 @@ fun {ImplicitComposition Objects}
       
       %% Create a dispatcher that finds and calls methods from managed objects
       fun {CreateDispatcher MethodName}
-         fun {$}
-            {FindAndCallMethod Objects MethodName nil}
+         fun {$ Args}
+            {FindAndCallMethod Objects MethodName Args}
          end
       end
       
@@ -95,8 +95,16 @@ fun {ImplicitComposition Objects}
             error(noMethod:MethodName)
          [] Object|Rest then
             if {HasMethod Object MethodName} then
-               %% Call the method directly without arguments
-               {Object.MethodName}
+               %% Call the method with the provided arguments
+               case Args of nil then
+                  {Object.MethodName}
+               [] [Arg] then
+                  {Object.MethodName Arg}
+               [] [Arg1 Arg2] then
+                  {Object.MethodName Arg1 Arg2}
+               else
+                  {Object.MethodName Args}
+               end
             else
                {FindAndCallMethod Rest MethodName Args}
             end
@@ -106,6 +114,13 @@ fun {ImplicitComposition Objects}
       %% Get all unique method names from all objects
       fun {GetAllMethodNames Objects}
          {RemoveDuplicates {Flatten {Map Objects GetMethodNames}}}
+      end
+      
+      %% Flatten a list of lists into a single list
+      fun {Flatten ListOfLists}
+         case ListOfLists of nil then nil
+         [] H|T then {Append H {Flatten T}}
+         end
       end
       
       %% Remove duplicates from a list
@@ -933,8 +948,10 @@ in
       
       {System.showInfo "ImplicitComposition methods: "}
       {Show {GetMethodNames ImplicitComp}}
-      {System.showInfo "ImplicitComposition - getAttribute1: " # {ImplicitComp.getAttribute1}}
-      {System.showInfo "ImplicitComposition - getAttribute2: " # {ImplicitComp.getAttribute2}}
+      {System.showInfo "ImplicitComposition - getAttribute1: "}
+      {Show {ImplicitComp.getAttribute1 nil}}
+      {System.showInfo "ImplicitComposition - getAttribute2: "}
+      {Show {ImplicitComp.getAttribute2 nil}}
    end
    
    {System.showInfo "=== Testing Task 4: ExplicitCompositionPoly ==="}
